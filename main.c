@@ -1,6 +1,6 @@
 // Bruno Antico Galin RA: 104
 // Ismael de Sousa Silva RA: 10410870
-// [Seu nome] RA: [Seu RA] — Partes 3 e 6
+// Lucas Kenzo Kawamoto: 10396359
 //------------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdlib.h>
