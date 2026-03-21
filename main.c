@@ -1,11 +1,13 @@
-// Bruno Antico Galin RA: 104
+// Bruno Antico Galin RA: 10417318
 // Ismael de Sousa Silva RA: 10410870
 // Lucas Kenzo Kawamoto: 10396359
+// Vitor Alves Pereira: 10410862
 //------------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <math.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3_image/SDL_image.h>
@@ -114,15 +116,71 @@ void SalvarImagem(SDL_Renderer *renderer) {
 }
 
 //------------------------------------------------------------------------------
+// Parte 4: Análise e exibição do histograma (Média)
+float calcularMediaHist(int *hist, int total){
+    float mean = 0.0; // Média
+    for (int i = 0; i < 256; i++) mean += i * hist[i];
+    mean = mean/total;
+
+    printf("Media: %.4f\n", mean);
+
+    if (mean < 85) printf("Imagem escura\n");
+    else if (mean < 170) printf("Imagem media\n");
+    else printf("Imagem clara\n");
+
+    return mean;
+}
+
+// Parte 4: Análise e exibição do histograma (Desvio Padrão)
+float calcularStdHist(int *hist, float mean, int total){
+    float var = 0.0; // Variância
+    for (int i = 0; i < 256; i++) var += hist[i] * (i - mean) * (i - mean);
+    float std = sqrt(var/total); // Desvio padrão é a raiz quadrada da variância
+
+    printf("\nDesvio padrao: %.4f\n",std);
+
+    if (std < 30) printf("Constraste baixo\n");
+    else if (std < 70) printf("Contraste medio\n");
+    else printf("Contraste alto\n");
+
+    return std;
+}
+
+// Parte 4: Análise e exibição do histograma (Exibição)
+void exibeHistograma(SDL_Renderer *secRenderer, int hist[]){
+    int max = 0;
+    for (int i = 0; i < 256; i++){
+      if (hist[i] > max) max = hist[i];
+    }
+
+    SDL_FRect areaHistograma = { 10, 10, SEC_WINDOW_WIDTH - 20, SEC_WINDOW_HEIGHT - 80 };
+    SDL_RenderRect(secRenderer, &areaHistograma);
+    float largura = areaHistograma.w/256;
+    SDL_SetRenderDrawColor(secRenderer,255,0,255,255);
+
+    for (int i = 0; i < 256; i++){
+      float altura = 0;
+      if (max > 0) altura = ((float)hist[i]/max) * areaHistograma.h;
+      
+      SDL_FRect column = { // Design das colunas do histograma
+        areaHistograma.x + i * largura,
+        areaHistograma.y + areaHistograma.h - altura,
+        largura,
+        altura,
+      };
+
+      SDL_RenderFillRect(secRenderer,&column);
+    }
+}
+
+//------------------------------------------------------------------------------
 // Parte 3: Renderiza a janela secundária com área de histograma e botão
-void RenderizarJanelaSecundaria(SDL_Renderer *secRenderer) {
+void RenderizarJanelaSecundaria(SDL_Renderer *secRenderer, int hist[]) {
     SDL_SetRenderDrawColor(secRenderer, 40, 40, 40, 255);
     SDL_RenderClear(secRenderer);
 
-    // Área reservada para o histograma (colega vai preencher)
-    SDL_FRect areaHistograma = { 10, 10, SEC_WINDOW_WIDTH - 20, SEC_WINDOW_HEIGHT - 80 };
-    SDL_SetRenderDrawColor(secRenderer, 200, 200, 200, 255);
-    SDL_RenderRect(secRenderer, &areaHistograma);
+    // Área reservada para o histograma
+    exibeHistograma(secRenderer, hist);
 
     // Botão "Equalizar" — azul (estado neutro)
     SDL_FRect botao = { 10, SEC_WINDOW_HEIGHT - 60, SEC_WINDOW_WIDTH - 20, 50 };
@@ -139,11 +197,11 @@ void RenderizarJanelaSecundaria(SDL_Renderer *secRenderer) {
 //------------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-    char ext_arquivo[256];
-    printf("Adicione o caminho do arquivo da sua imagem:\n");
-    fgets(ext_arquivo, sizeof(ext_arquivo), stdin);
-    ext_arquivo[strcspn(ext_arquivo, "\n")] = '\0';
-
+    if (argc < 2){
+      printf("O programa deve ser compilado como: \nprograma caminho_da_imagem.ext");
+      return 1;
+    }
+    const char *ext_arquivo = argv[1];
     ValidarExtensao(ext_arquivo);
 
     bool imagemCinza = VerificaImagem(ext_arquivo);
@@ -158,6 +216,7 @@ int main(int argc, char *argv[])
     }
 
     SDL_Surface *graySurface = ConvertImageScaleGray(ext_arquivo);
+
     if (!graySurface) {
         SDL_Log("Falha ao converter imagem para cinza.");
         SDL_Quit();
@@ -166,6 +225,18 @@ int main(int argc, char *argv[])
 
     int imgW = graySurface->w;
     int imgH = graySurface->h;
+    int total = imgW * imgH;
+
+    int histograma[256] = {0};
+    Uint8* pixels = (Uint8*) graySurface->pixels;
+
+    for (int i = 0; i < total; i++){
+      Uint8 gray = pixels[i*3]; // Valor de intensidade R=G=B
+      histograma[gray]++; // incrementa a intensidade
+    }
+
+    float mean = calcularMediaHist(histograma, total);
+    calcularStdHist(histograma, mean, total);
 
     // Centralizar janela principal no monitor
     SDL_DisplayID displayID = SDL_GetPrimaryDisplay();
@@ -263,7 +334,7 @@ int main(int argc, char *argv[])
         SDL_RenderPresent(mainRenderer);
 
         // Renderizar janela secundária
-        RenderizarJanelaSecundaria(secRenderer);
+        RenderizarJanelaSecundaria(secRenderer, histograma);
     }
 
     // --- Limpeza ---
