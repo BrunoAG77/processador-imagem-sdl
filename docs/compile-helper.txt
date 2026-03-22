@@ -1,0 +1,4 @@
+Comando para compilar no Mac:
+    - Sem a estruturação: clang main.c -o app $(pkg-config --cflags --libs sdl3 sdl3-image sdl3-ttf)
+    - Com a estruturação: clang src/main.c -o temp/app $(pkg-config --cflags --libs sdl3 sdl3-image sdl3-ttf)
+
