@@ -581,11 +581,10 @@ int validarExtensao(const char* nomeDoArquivo) {
 int verificacaoDaImagem(const char* nomeDoArquivo) {
 
     SDL_Surface *imagem = IMG_Load(nomeDoArquivo);
-    int resultado = 0;
     
     if (!imagem) {
 
-        resultado = -1;
+        return -1;
 
     }
     
@@ -595,7 +594,7 @@ int verificacaoDaImagem(const char* nomeDoArquivo) {
     
     if (!imagemConvertida) {
         
-        resultado = -2;
+        return -2;
     
     }
     
@@ -605,9 +604,7 @@ int verificacaoDaImagem(const char* nomeDoArquivo) {
     
         if (pixels[i*3] != pixels[i*3+1] || pixels[i*3+1] != pixels[i*3+2]) {
     
-            resultado = -3;
-    
-            break;
+            return -3;
     
         }
     
@@ -615,7 +612,7 @@ int verificacaoDaImagem(const char* nomeDoArquivo) {
     
     SDL_DestroySurface(imagemConvertida);
     
-    return resultado;
+    return 0;
 
 }
 
